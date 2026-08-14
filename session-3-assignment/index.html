@@ -169,14 +169,14 @@
       <table class="data">
         <thead><tr><th>Bucket</th><th class="num">%</th><th class="num">~Tokens</th><th>Why</th></tr></thead>
         <tbody>
-          <tr><td>High-quality English web (Indian-authored upweighted)</td><td class="num">30%</td><td class="num">4.65T</td><td class="why">General capability; the English distribution itself becomes India-centric</td></tr>
+          <tr><td>High-quality English web (Indian-authored upweighted)</td><td class="num">30%</td><td class="num">3.24T</td><td class="why">General capability; the English distribution itself becomes India-centric</td></tr>
           <tr><td>Code + PR / issue threads</td><td class="num">18%</td><td class="num">1.94T</td><td class="why">Software-engineering patterns; agentic priors start here, not at SFT</td></tr>
           <tr><td>India-context <em>English</em> — Constitution and BNS, Supreme and High Court judgments, Parliament, RBI / SEBI, NCERT / NPTEL, Census</td><td class="num">15%</td><td class="num">1.62T</td><td class="why">This is where the licensed Indian corpus actually lives: Indian judgments, circulars and Parliament records are overwhelmingly written in English. Booking them here, not in the Indic bucket, stops the same text being counted twice</td></tr>
           <tr><td>Math + science</td><td class="num">12%</td><td class="num">1.30T</td><td class="why">Structured reasoning; supplies the answer-verifiable subset RL needs later</td></tr>
           <tr><td>Other multilingual</td><td class="num">7%</td><td class="num">0.76T</td><td class="why">Cross-lingual transfer into low-resource Indic</td></tr>
           <tr><td>Books / long-form</td><td class="num">6%</td><td class="num">0.65T</td><td class="why">Discourse coherence and long-range dependency</td></tr>
-          <tr><td>Verified synthetic reasoning</td><td class="num">6%</td><td class="num">0.49T</td><td class="why">Chains kept only when the final answer is checkable</td></tr>
-          <tr class="winner"><td>Indic native script — 12 scheduled languages, 10 scripts</td><td class="num">5%</td><td class="num">0.76T</td><td class="why">Supply-capped, not preference-capped. Ledger below</td></tr>
+          <tr><td>Verified synthetic reasoning</td><td class="num">4.5%</td><td class="num">0.49T</td><td class="why">Chains kept only when the final answer is checkable</td></tr>
+          <tr class="winner"><td>Indic native script — 12 scheduled languages, 10 scripts</td><td class="num">7%</td><td class="num">0.76T</td><td class="why">Supply-capped, not preference-capped. Ledger below. Note the share <em>rose</em> from 5% when the budget fell from 20T to 14T, because the bucket is fixed in absolute tokens by what verifiably exists</td></tr>
           <tr><td>Romanized / code-mixed Indic, real tagged user text</td><td class="num">0.5%</td><td class="num">0.05T</td><td class="why">All the genuinely human romanized text we can source. Machine transliteration is counted as synthetic, not as this</td></tr>
         </tbody>
       </table>
@@ -224,7 +224,7 @@
       </table>
     </div>
     <p class="foot-note">All three sit at the top of the published per-stage bands (SFT 100K–1M, preference 50–500K pairs, RL 10–100K prompts) rather than above them. Required volume falls roughly a millionfold from pre-training to RL while noise tolerance inverts — a mislabelled verifier teaches the wrong behaviour directly. Indian tools are in the sandbox (UPI, GST, IRCTC, DigiLocker, eCourts), and a language-consistency reward stops Indic reasoning from collapsing into English.</p>
-    <div class="verdict"><b>Decision.</b> Stages summing to 20.0T, an Indic bucket capped at 0.76T by verified supply and the synthetic ceiling, the licensed Indian corpus booked as English where it actually is, and Indic post-training authored natively rather than translated.</div>
+    <div class="verdict"><b>Decision.</b> Stages summing to 14.0T, an Indic bucket capped at 0.76T by verified supply and the synthetic ceiling, the licensed Indian corpus booked as English where it actually is, and Indic post-training authored natively rather than translated.</div>
   </div>
 </section>
 
