@@ -1,0 +1,14 @@
+# Course material — instructor's content, not ours to redistribute.
+# Lecture notes, the 21 embedded widgets, the course transcript, and the
+# archived peer submissions all live here.
+session-3-data-collection-sourcing/
+
+# Design-system scratch file pulled by `npx getdesign@latest add nike`
+session-3-assignment/DESIGN.md
+
+# Local noise
+.DS_Store
+*.pyc
+__pycache__/
+.venv/
+node_modules/

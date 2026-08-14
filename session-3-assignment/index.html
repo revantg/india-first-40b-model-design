@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERA V5 · Assignment 3 — a 40B India-first model: data, cleaning, evaluation, tokenizer</title>
+<meta name="description" content="Design brief for a 40B India-first model. A 14T budget derived from compute parity and unique-data supply, data mixture by bucket and token count, an Indic ledger capped by what verifiably exists, cleaning pipeline per bucket, evaluation bars pinned to live competitors, and per-language fertility targets that imply the vocabulary size.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  html { scroll-behavior: smooth; }
+  body { background: var(--canvas); }
+  .util { background: var(--soft-cloud); font-size: 12px; font-weight: 500; padding: 8px 0; border-bottom: 1px solid var(--hairline-soft); }
+  .util .container { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--mute); }
+  .nav { position: sticky; top: 0; z-index: 50; background: var(--canvas); border-bottom: 1px solid var(--hairline); }
+  .nav .container { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 56px; }
+  .nav .brand { font-family: var(--font-display); font-size: 22px; text-transform: uppercase; text-decoration: none; color: var(--ink); white-space: nowrap; }
+  .nav .links { display: flex; gap: 18px; overflow-x: auto; }
+  .nav .links a { font-size: 13px; font-weight: 600; color: var(--charcoal); text-decoration: none; white-space: nowrap; padding: 4px 0; border-bottom: 2px solid transparent; }
+  .nav .links a:hover { border-bottom-color: var(--ink); }
+  .hero { background: var(--ink); color: var(--on-primary); padding: 72px 0 64px; }
+  .hero h1 { font-family: var(--font-display); text-transform: uppercase; font-size: clamp(52px, 8vw, 112px); line-height: 0.9; margin-bottom: var(--sp-xl); }
+  .hero .kicker { color: var(--stone); }
+  .hero p { font-size: 19px; line-height: 1.55; max-width: 880px; color: var(--hairline-soft); }
+  .kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--mute); margin-bottom: var(--sp-md); }
+  .numbers { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 1px; background: var(--charcoal); margin-top: var(--sp-section); }
+  .numbers div { background: var(--ink); padding: var(--sp-lg) var(--sp-md); }
+  .numbers .n { font-family: var(--font-display); font-size: clamp(28px, 3.2vw, 44px); line-height: 1; }
+  .numbers .l { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stone); margin-top: 6px; }
+  section.block { padding: var(--sp-section) 0; border-bottom: 1px solid var(--hairline); }
+  section.block.cloud { background: var(--soft-cloud); }
+  h2.sec { font-family: var(--font-display); text-transform: uppercase; font-size: clamp(34px, 4.6vw, 62px); line-height: 0.95; margin-bottom: var(--sp-md); }
+  h3.sub { font-size: 18px; font-weight: 600; margin: var(--sp-xxl) 0 var(--sp-sm); }
+  .claim { font-size: 17px; line-height: 1.55; max-width: 900px; color: var(--charcoal); }
+  .claim strong { color: var(--ink); }
+  .tbl-wrap { overflow-x: auto; margin-top: var(--sp-md); }
+  table.data { min-width: 660px; }
+  table.data td.why { color: var(--charcoal); }
+  .verdict { margin-top: var(--sp-lg); padding: var(--sp-md) var(--sp-lg); background: var(--ink); color: var(--on-primary); font-size: 15px; line-height: 1.5; }
+  .foot-note { font-size: 13px; color: var(--mute); line-height: 1.6; margin-top: var(--sp-md); max-width: 920px; }
+  .viz { margin-top: var(--sp-xl); }
+  .viz svg { width: 100%; height: auto; display: block; }
+  ul.tight { margin: var(--sp-sm) 0 0 20px; }
+  ul.tight li { font-size: 15px; line-height: 1.6; color: var(--charcoal); margin-bottom: 4px; }
+  .eq { font-family: "SF Mono", ui-monospace, Consolas, monospace; font-size: 14px; line-height: 1.7; background: var(--soft-cloud); padding: var(--sp-md) var(--sp-lg); margin-top: var(--sp-md); overflow-x: auto; }
+  .block.cloud .eq { background: var(--canvas); }
+  .mono { font-family: "SF Mono", ui-monospace, Consolas, monospace; font-size: 13px; }
+  @media (max-width: 700px) { .nav .links { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="util">
+  <div class="container">
+    <span>ERA V5 · Session 3 · Data collection and sourcing</span>
+    <span>Planning estimates — frozen only after equal-compute proxy ablations</span>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="container">
+    <a class="brand" href="#top">40B India-first</a>
+    <div class="links">
+      <a href="#budget">A0 · Budget</a>
+      <a href="#data">A1 · Data</a>
+      <a href="#indiafirst">A2 · India-first</a>
+      <a href="#clean">A3 · Cleaning</a>
+      <a href="#test">A4 · Testing</a>
+      <a href="#tok">A5 · Fertility → vocab</a>
+      <a href="#risk">Trade-offs</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="container">
+    <div class="kicker">Assignment 3 · Gemma-4 class · strong at coding and agents · native in Indic · Indian by default</div>
+    <h1>Data is<br>the model.</h1>
+    <p>Four questions, answered as tables: what we collect and why at each training stage, how we clean it for those objectives, how we test so a strong English score cannot hide a weak Odia, and what per-language fertility implies for vocabulary size. The Indic bucket is sized by what verifiably exists, not by what we would like to claim.</p>
+    <div class="numbers">
+      <div><div class="n">40B</div><div class="l">dense + distillation</div></div>
+      <div><div class="n">14T</div><div class="l">tokens · 350 / param</div></div>
+      <div><div class="n">95B</div><div class="l">real Indic supply</div></div>
+      <div><div class="n">4.8T</div><div class="l">unique · 2.9 epochs</div></div>
+      <div><div class="n">8%</div><div class="l">always-on floor · 1.12T</div></div>
+      <div><div class="n">196,608</div><div class="l">vocab · 192 × 1024</div></div>
+    </div>
+  </div>
+</header>
+
+<section class="block" id="budget">
+  <div class="container">
+    <div class="kicker">A0 · Budget</div>
+    <h2 class="sec">14T, derived twice.</h2>
+    <p class="claim"><strong>Claim.</strong> Parameter count is given by the brief, so the only open question is how many tokens — and that number is the denominator for every figure in the mixture. It is not picked from a range. Two independent constraints squeeze it from opposite sides: <strong>compute parity sets a floor, unique-data supply sets a ceiling</strong>, and 14T is what survives both.</p>
+
+    <h3 class="sub">Constraint 1 — the floor: what parity actually costs</h3>
+    <p class="foot-note">Training costs about 6 FLOPs per parameter per token: 2 forward, 4 backward. So <span class="mono">C = 6ND</span>. The parity reference is Gemma 3 27B on 14T tokens, which is published.</p>
+    <div class="eq">
+      target&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C = 6 × 27e9 × 14e12 = 2.27e24 FLOPs<br>
+      ours 14T&nbsp;&nbsp;C = 6 × 40e9 × 14e12 = 3.36e24 FLOPs&nbsp;&nbsp;→&nbsp;&nbsp;<strong>1.48× the target</strong>
+    </div>
+    <p class="foot-note">Matching compute <em>exactly</em> needs only <strong>9.4T</strong> at 40B, because we carry 29% more parameters than the 27B reference. That is the floor: below it, “as good as Gemma 4” is arithmetically unavailable. 14T buys 1.48× the target’s compute — real headroom, not a coin flip. This is also why the Chinchilla row fails: 40B on 0.8T is <strong>1.92e23 FLOPs, 11.8× less</strong> than the target, and the paper’s own fitted law <span class="mono">L = 1.69 + 406.4/N^0.34 + 410.7/D^0.28</span> puts it at loss 1.982 against the target’s 1.891.</p>
+
+    <h3 class="sub">Constraint 2 — the ceiling: unique data that passes our own filters</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Source</th><th class="num">Unique tokens</th></tr></thead>
+        <tbody>
+          <tr><td>DCLM-baseline, filtered English</td><td class="num">2.60T</td></tr>
+          <tr><td>FineWeb-Edu, education-filtered English</td><td class="num">1.30T</td></tr>
+          <tr><td>The Stack v2, permissive licences, deduplicated</td><td class="num">0.65T</td></tr>
+          <tr><td>Other multilingual, quality-gated</td><td class="num">0.60T</td></tr>
+          <tr><td>Math and STEM: OpenWebMath, FineMath, peS2o, arXiv</td><td class="num">0.20T</td></tr>
+          <tr><td>Books and long-form, licence-clear</td><td class="num">0.15T</td></tr>
+          <tr><td>Indic native, verified</td><td class="num">0.095T</td></tr>
+          <tr><td>India-context English: judgments, gazettes, Parliament, NCERT</td><td class="num">0.05T</td></tr>
+          <tr><td>Subtotal</td><td class="num">5.65T</td></tr>
+          <tr class="winner"><td>After ~15% overlap between the English sources</td><td class="num">≈4.8T</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">At an average of ≤3 passes, 4.8T unique carries at most <strong>14.4T</strong>. That is the ceiling, and it is what rules out 16T, 20T and 30T below.</p>
+    <h3 class="sub">Token budget — the rejection chain</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Option</th><th class="num">Tokens</th><th class="num">Tok / param</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td>Chinchilla compute-optimal</td><td class="num">0.8T</td><td class="num">20</td><td class="fail">Cheap to train, expensive on every future request</td></tr>
+          <tr><td>“Cheap run”</td><td class="num">8T</td><td class="num">200</td><td class="fail">Well under the ~14T the parity class was trained on</td></tr>
+          <tr class="winner"><td>Selected</td><td class="num">14T</td><td class="num">350</td><td class="pass">1.48× the target’s compute, and 2.9 average epochs on the 4.8T unique pool — above the parity floor and inside the ≤3-epoch discipline</td></tr>
+          <tr><td>Peer-common budget</td><td class="num">16T</td><td class="num">400</td><td class="fail">3.3 epochs — breaks our own ≤3-epoch average</td></tr>
+          <tr><td>Aggressive</td><td class="num">20T</td><td class="num">500</td><td class="fail">4.2 epochs — breaks the hard cap of 4. Ratio-matching the reference’s 519 tok/param lands here, but that confuses matching a <em>ratio</em> with matching <em>quality</em>: at 40B it overshoots parity compute by 2.19×</td></tr>
+          <tr><td>Ceiling</td><td class="num">30T</td><td class="num">750</td><td class="fail">6.2 epochs, needing ~10T unique at quality. It does not exist</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note"><strong>Distillation is part of the selected recipe, not just a stick to beat the small budgets with.</strong> Stages A and B run with knowledge distillation from a larger teacher — top-<em>k</em> logits per token weighted by teacher probability, the mechanism the 27B reference itself used. It is what buys quality at 14T instead of requiring 20T, and it is why we can stay inside the epoch discipline rather than repeating data to reach a bigger headline number.</p>
+    <p class="foot-note"><strong>The weakest link, stated plainly:</strong> the 4.8T unique figure is assembled from published corpus sizes, not measured after running our own pipeline end to end. If the real filtered yield is 6T, 18T becomes defensible; if it is 3.5T, the budget drops to about 10T. Measuring it therefore gates the run — the same “ablate before you scale” discipline applied to the budget itself.</p>
+    <p class="foot-note">Unique stock ≈4.8T measured against published corpus sizes; 14T is 2.9 average passes, hard cap 4 on any sub-corpus — repeats are nearly free to ~4 epochs and near-worthless by ~16 (Muennighoff et al.). Effective public human text is ~300T (Epoch AI), so the shortfall is filled by licensed Indian sources, new languages and capped synthetic, not by more crawling.</p>
+
+    <h3 class="sub">How 14T is partitioned before any mixture is chosen</h3>
+    <div class="viz" aria-label="14T partition">
+      <svg viewBox="0 0 1000 120" role="img">
+        <rect x="0" y="10" width="905" height="42" fill="#111111"/>
+        <text x="14" y="37" fill="#ffffff" font-size="14" font-family="Inter,sans-serif">Main scored pool · 12.67T · 90.5%</text>
+        <rect x="905" y="10" width="80" height="42" fill="#707072"/>
+        <text x="913" y="30" fill="#ffffff" font-size="11" font-family="Inter,sans-serif">floor 8%</text>
+        <text x="913" y="44" fill="#ffffff" font-size="11" font-family="Inter,sans-serif">1.12T</text>
+        <rect x="985" y="10" width="15" height="42" fill="#cacacb"/>
+        <text x="0" y="76" fill="#707072" font-size="13" font-family="Inter,sans-serif">Only the main pool is ranked by the batch-quality selector (OPUS-style, ~40% retained in V4). The 1.12T always-on floor and the 210B anneal reserve are invisible to it.</text>
+        <text x="0" y="100" fill="#707072" font-size="13" font-family="Inter,sans-serif">12.67T + 1.12T + 0.21T = 14.0T</text>
+      </svg>
+    </div>
+    <div class="verdict"><b>Decision.</b> 40B dense with distillation, 14T tokens at 350 per parameter, being 1.48× the parity target’s compute and 2.9 epochs on a 4.8T unique pool, partitioned 12.67T scored / 1.12T protected / 210B reserved for the cooldown.</div>
+  </div>
+</section>
+
+<section class="block cloud" id="data">
+  <div class="container">
+    <div class="kicker">A1 · Data — what, how much, why</div>
+    <h2 class="sec">Four stages. A supply-capped ledger.</h2>
+    <p class="claim"><strong>Claim.</strong> 14T pre-training tokens across four stages that sum exactly to 14T. The unit of data changes after pre-training, so each stage gets its own table. The single hardest constraint in the whole brief: <strong>verified native Indic text barely exists</strong>, so the Indic bucket is sized by supply and by the synthetic ceiling, not by ambition.</p>
+
+    <h3 class="sub">Stage A · breadth — 10.8T</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Bucket</th><th class="num">%</th><th class="num">~Tokens</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>High-quality English web (Indian-authored upweighted)</td><td class="num">30%</td><td class="num">4.65T</td><td class="why">General capability; the English distribution itself becomes India-centric</td></tr>
+          <tr><td>Code + PR / issue threads</td><td class="num">18%</td><td class="num">1.94T</td><td class="why">Software-engineering patterns; agentic priors start here, not at SFT</td></tr>
+          <tr><td>India-context <em>English</em> — Constitution and BNS, Supreme and High Court judgments, Parliament, RBI / SEBI, NCERT / NPTEL, Census</td><td class="num">15%</td><td class="num">1.62T</td><td class="why">This is where the licensed Indian corpus actually lives: Indian judgments, circulars and Parliament records are overwhelmingly written in English. Booking them here, not in the Indic bucket, stops the same text being counted twice</td></tr>
+          <tr><td>Math + science</td><td class="num">12%</td><td class="num">1.30T</td><td class="why">Structured reasoning; supplies the answer-verifiable subset RL needs later</td></tr>
+          <tr><td>Other multilingual</td><td class="num">7%</td><td class="num">0.76T</td><td class="why">Cross-lingual transfer into low-resource Indic</td></tr>
+          <tr><td>Books / long-form</td><td class="num">6%</td><td class="num">0.65T</td><td class="why">Discourse coherence and long-range dependency</td></tr>
+          <tr><td>Verified synthetic reasoning</td><td class="num">6%</td><td class="num">0.49T</td><td class="why">Chains kept only when the final answer is checkable</td></tr>
+          <tr class="winner"><td>Indic native script — 12 scheduled languages, 10 scripts</td><td class="num">5%</td><td class="num">0.76T</td><td class="why">Supply-capped, not preference-capped. Ledger below</td></tr>
+          <tr><td>Romanized / code-mixed Indic, real tagged user text</td><td class="num">0.5%</td><td class="num">0.05T</td><td class="why">All the genuinely human romanized text we can source. Machine transliteration is counted as synthetic, not as this</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">Code is 18% of Stage A and <strong>17.6% of the whole run</strong> (1.94T here plus 0.52T in Stage B, of 14T) — stated as a run-wide figure, not a Stage-A figure dressed up as a cap. Code lifts non-code reasoning by up to +8.2% in the best published case, but an excessive share measurably hurts morphology and factual recall. Documents carry multiple tags, so a Tamil physics lesson satisfies both the Indic and STEM floor while being sampled once.</p>
+
+    <h3 class="sub">The Indic ledger — why the bucket is 0.76T and not 3T</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Component</th><th class="num">Tokens</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Real verified native supply</td><td class="num">≈95B unique</td><td class="why">Sangraha’s <strong>64B human-verified</strong> tier (its 251B headline is ~65% machine-translated and transliterated) + IndicCorp v2 ~21B + ~10B of genuinely Indic-script gazette, state-portal and Hindi-language judgment text. Published Indian legal corpora are English and an order of magnitude smaller than the ~200B a native-script scrape would need to be</td></tr>
+          <tr><td>Real native after repetition</td><td class="num">95B × 4 epochs → 0.38T</td><td class="why">At the hard epoch cap. There is no fifth pass available</td></tr>
+          <tr><td>Quality-gated synthetic</td><td class="num">0.38T</td><td class="why">English→Indic educational translation, machine transliteration, native-script textbook-style generation. Exactly at the 50% scarce-language ceiling, tagged synthetic, never labelled native</td></tr>
+          <tr class="winner"><td>Bucket total</td><td class="num">0.76T</td><td class="why">50% real / 50% synthetic. Going higher would break either the epoch cap or the synthetic ceiling — so the bucket stops here</td></tr>
+          <tr><td>Language weights</td><td class="num">—</td><td class="why">∝ speakers × verified availability: hi ~30%; bn / te / mr / ta 8–10% each; gu / kn / ml / pa / or / as / ur share the rest</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note"><strong>Total Indic-language exposure is larger than the bucket:</strong> 0.76T native + 0.05T real romanized + ~0.67T of the 1.12T always-on floor + 0.26T in Stage B + 0.05T of the anneal ≈ <strong>1.79T, about 12.8% of the run</strong>, on top of 1.62T of India-context English. Verified reality check: Telugu falls from a 16.3B headline to 3.7B verified and Odia from 12.5B to 1.2B, against 2,847B English in CulturaX. Synthetic stays ≤25% of the corpus overall and ≤50% inside a scarce-language bucket, always grown from a verified seed, because a corpus that feeds on model output degrades.</p>
+
+    <h3 class="sub">Stage B · 2.6T · Stage C · 0.4T · Stage D · 0.21T — and where the floor actually lives</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Stage</th><th class="num">Tokens</th><th>Content</th></tr></thead>
+        <tbody>
+          <tr><td>B · capability</td><td class="num">2.6T</td><td class="why">Math, verified solutions 25% (0.65T) · code, repo-level 20% (0.52T) · India-domain English 20% (0.52T) · agentic traces 15% (0.39T — tool-call logs, terminal sessions, SWE trajectories from issue–PR–patch triples) · top-decile Indic and romanized 10% (0.26T) · long verified reasoning 10% (0.26T)</td></tr>
+          <tr><td>C · long context</td><td class="num">0.4T</td><td class="why">8k → 128k: whole repositories, case law with citation chains, multi-document retrieval traces</td></tr>
+          <tr><td>D · anneal (LR cooldown)</td><td class="num">0.21T</td><td class="why">Math + code 40% · native Indic 25% · verified long reasoning 25% · gold agent trajectories 10%</td></tr>
+          <tr><td>Always-on floor · cross-cutting</td><td class="num">1.12T <em>inside</em> A–C</td><td class="why">8% of every batch: scarce Indic, romanized, India-domain and benchmark-<em>train</em> format. The selector never scores it. <strong>Not a fifth stage</strong> — already counted inside the bucket percentages, so stages sum to 14.0T</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">Stage B Indic is 10%, not 25%: a top decile of the Stage A Indic pool is ~0.08T, so even 0.26T is roughly 3 passes of the very best material and has to be widened beyond the strict decile. Claiming 25% here would mean tens of epochs on a few billion tokens, contradicting the same epoch cap stated above. The anneal must be reserved before training starts: a small cooldown mix of exactly this shape moved grade-school math from 24.1% to 67.5% in OLMo 2. The floor exists because an English-trained selector systematically under-scored Brahmic text in V4; the published fix reserved 8% of every batch across 10 scripts, 66.9B tokens of guaranteed Indic inside that channel.</p>
+
+    <h3 class="sub">Post-training — volume falls, precision rises</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Stage</th><th class="num">Volume</th><th>Composition and why</th></tr></thead>
+        <tbody>
+          <tr><td>SFT · instruction → response</td><td class="num">~1M pairs</td><td class="why">35% agentic and code (sandbox-verified trajectories, verified tool-calls) · 25% reasoning chains · 25% Indic authored natively, never translated · 15% India-domain and safety. A bad answer here is copied verbatim</td></tr>
+          <tr><td>Preference · chosen vs rejected</td><td class="num">~120K prompts × 4 responses ≈ 500K pairs</td><td class="why">Booked in <em>pairs</em>, which is the unit the published band uses, so this sits at the band ceiling rather than 3–5× above it. Indian annotator pool balanced across language, region, rural/urban, gender and community. No reward for verbosity; safety pairs stay human-anchored</td></tr>
+          <tr><td>RL with verifiable rewards</td><td class="num">~100K tasks</td><td class="why">GRPO against unit tests, symbolic math checks, tool-call schemas and ~5K sandboxed SWE / tool environments. Reward is the environment end-state, not a judge model</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">All three sit at the top of the published per-stage bands (SFT 100K–1M, preference 50–500K pairs, RL 10–100K prompts) rather than above them. Required volume falls roughly a millionfold from pre-training to RL while noise tolerance inverts — a mislabelled verifier teaches the wrong behaviour directly. Indian tools are in the sandbox (UPI, GST, IRCTC, DigiLocker, eCourts), and a language-consistency reward stops Indic reasoning from collapsing into English.</p>
+    <div class="verdict"><b>Decision.</b> Stages summing to 20.0T, an Indic bucket capped at 0.76T by verified supply and the synthetic ceiling, the licensed Indian corpus booked as English where it actually is, and Indic post-training authored natively rather than translated.</div>
+  </div>
+</section>
+
+<section class="block" id="indiafirst">
+  <div class="container">
+    <div class="kicker">A2 · India-first by construction</div>
+    <h2 class="sec">Every layer, not the RLHF layer.</h2>
+    <p class="claim"><strong>Claim.</strong> “Views the world from an Indian perspective” must be produced by a mechanism at each layer, and each mechanism must produce a default that a probe can check.</p>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Lever</th><th>Mechanism</th><th>Default it produces</th></tr></thead>
+        <tbody>
+          <tr><td>Pre-training corpus</td><td class="why">Indian-authored English upweighted (press, textbooks, <span class="mono">.in</span>); India injections ×2–4: Constitution and BNS, Supreme and High Court judgments in bulk, Parliament debates, RBI / SEBI, NCERT / NPTEL, Census, UPI / ONDC docs; quality classifiers calibrated on Indian English so local idiom is not scored as low quality</td><td>“The Constitution” resolves to India’s</td></tr>
+          <tr><td>Knowledge frame</td><td class="why">NCERT, BNS, RBI and Census treated as canonical for civics, law, finance and geography</td><td>“Tax” resolves to GST and the IT Act</td></tr>
+          <tr><td>Structure over prose</td><td class="why">Judgments parsed as facts → issues → statutes → holding; dissents preserved; temporal citation graphs retained</td><td>Legal reasoning, not legal trivia</td></tr>
+          <tr><td>SFT</td><td class="why">Natively written Indian scenarios: UPI dispute, IRCTC booking, ration card, monsoon sowing, board exams</td><td>₹, lakh / crore, Indian names and examples</td></tr>
+          <tr><td>RL reward</td><td class="why">Indian annotators <em>are</em> the preference signal; principles derived from constitutional pluralism; judge rubrics written from an Indian vantage point</td><td>Refusal norms follow Indian law</td></tr>
+          <tr><td>Inference</td><td class="why">Locale-default system prompt</td><td>DD-MM-YYYY, IST, Indian units</td></tr>
+          <tr><td>Evaluation</td><td class="why">Default-perspective probes — an unspecified-locale question must resolve to the Indian frame; refusal-balance parity across religion, caste and region; quarterly Indian-rater evaluation</td><td>Measurable, not a slogan</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">India-first is not government- or party-aligned. Contested questions are answered with factual attribution and constitutional pluralism, and the corpus retains multiple credible Indian perspectives rather than one.</p>
+    <div class="verdict"><b>Decision.</b> Seven levers, each producing a default a probe can check. The evaluation row is what makes the claim falsifiable.</div>
+  </div>
+</section>
+
+<section class="block cloud" id="clean">
+  <div class="container">
+    <div class="kicker">A3 · Cleaning for the objectives</div>
+    <h2 class="sec">Identify first. Filter last.</h2>
+    <p class="claim"><strong>Claim.</strong> Most of the quality comes from what is removed, so each bucket gets its own pipeline. A single English-tuned gate would improve the majority language and quietly delete the minority ones.</p>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Bucket</th><th>Pipeline</th></tr></thead>
+        <tbody>
+          <tr><td>All data</td><td class="why">Article-level extraction (drop navigation, cookie banners, ghost tags, HTML entities, U+FFFD, zero-width and control characters) → exact plus MinHash-LSH dedup at per-snapshot scope → Indian PII scrub including Aadhaar, PAN and UPI formats → 13-gram plus semantic decontamination against the whole evaluation suite, including translated variants → per-shard passport recording source, licence, language, natural or synthetic status and every transform</td></tr>
+          <tr><td>English web</td><td class="why">Educational-value classifier plus an AI-slop and content-farm detector</td></tr>
+          <tr><td>Indic</td><td class="why">Triple language-ID that rejects wrong-script documents · NFC normalisation preserving ZWJ / ZWNJ · byte-level MinHash on character 5-grams after canonicalising transliteration · per-language perplexity gates used as a soft filter so informal registers survive · natively built casteist and communal slur lexicons · romanized text kept and tagged separately from machine transliteration · machine-translation quality gate (COMET / LaBSE plus round-trip) on all synthetic</td></tr>
+          <tr><td>Code</td><td class="why">Licence allowlist · secrets scrub · repository dedup · AST, lint and compile filters · issue and PR threads kept intact</td></tr>
+          <tr><td>Agentic traces</td><td class="why">Sandbox replay; keep successes and valid error-recovery only</td></tr>
+          <tr><td>Math / science</td><td class="why">LaTeX-preserving extraction; the answer-verifiable subset tagged for RL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Two India-specific rules generic pipelines get wrong</h3>
+    <ul class="tight">
+      <li>Preserve ZWJ / ZWNJ. Blind normalisation shatters conjuncts — the lesson from building the tokenizer in Session 2.</li>
+      <li>Deduplicate at byte level on character n-grams, after canonicalising transliteration. Word-level MinHash fails on agglutinative Dravidian morphology, and native and romanized copies are near-duplicates only once script is unified.</li>
+    </ul>
+
+    <h3 class="sub">Dedup scope is an ablation, not an opinion</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Choice</th><th class="num">Tokens kept</th><th>Published outcome</th></tr></thead>
+        <tbody>
+          <tr class="winner"><td>Per-snapshot dedup</td><td class="num">~20T</td><td class="pass">Default. Matched the stronger baseline in FineWeb’s own ablation</td></tr>
+          <tr><td>Global dedup across all crawls</td><td class="num">~4T</td><td class="fail">Removes more and scores worse — it discards higher-quality older material</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">Every filter, threshold, dedup scope and synthetic ratio is tested on equal-compute 1B and 3B proxies with per-language reporting before it touches 14T. A change that raises the global average while dropping any protected language is rejected. Two classifier families are trained, not one: an English educational-value scorer, and native-labelled scorers per script family.</p>
+    <div class="verdict"><b>Decision.</b> Language and script are identified before any quality score runs, protected Indic has retention floors, and every cleaning change must survive a proxy ablation.</div>
+  </div>
+</section>
+
+<section class="block" id="test">
+  <div class="container">
+    <div class="kicker">A4 · Testing against the objectives</div>
+    <h2 class="sec">Gates set against live competitors.</h2>
+    <p class="claim"><strong>Claim.</strong> A gate that a smaller published model already clears is not a gate. Every bar below is pinned to a current competitor or to a versioned harness, and none of them can be satisfied by a strong English score alone.</p>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Objective</th><th>Suite → bar</th></tr></thead>
+        <tbody>
+          <tr><td>General parity</td><td class="why">MMLU-Pro, GPQA-Diamond, IFEval, Arena-Hard → within 2–3 points of Gemma 4 31B dense, on identical prompts, tools and token budgets</td></tr>
+          <tr><td>Coding</td><td class="why">SWE-bench Verified <strong>≥ 65%</strong> with the scaffold and harness pinned — parity with the best published sub-30B coding models, which already reach 68–70%. A 40% bar would put us ~28 points behind a 24B open model. Plus LiveCodeBench (date-gated) and RepoBench; HumanEval is a smoke test only</td></tr>
+          <tr><td>Agentic</td><td class="why">BFCL <strong>v3 ≥ 78%</strong> (open SOTA is ~77.8%; v4 reported separately because it is materially harder), τ-bench, terminal-bench, an OSWorld subset → success <em>and</em> steps and cost; plus private held-out environments</td></tr>
+          <tr><td>Indic</td><td class="why">MILU (beat Gemma 4 31B), IndicGenBench, IN22 chrF++, romanization-robustness gap &lt; 5%, Hinglish QA — reported per language, never averaged</td></tr>
+          <tr><td>India-first</td><td class="why">Polity, schemes and GST factuality (UPSC-style), default-perspective probes, refusal-balance parity across religion / caste / region, quarterly Indian-rater evaluation</td></tr>
+          <tr><td>Safety</td><td class="why">Scored in-language. Published Indic work finds only ~13% cross-language agreement on safety decisions, so an English-only pass is a false pass</td></tr>
+          <tr><td>Continuous</td><td class="why">Per-domain and per-language loss dashboards, tokenizer-fertility regression in CI, decontamination audit before any reported number</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">The firewall — three tiers, one rule</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Tier</th><th>May it train?</th><th>Rule</th></tr></thead>
+        <tbody>
+          <tr><td>Training pools (four stages, SFT, preference, RL)</td><td class="pass">Yes</td><td class="why">Decontaminated against every test set with exact, fuzzy, semantic and cross-lingual matching</td></tr>
+          <tr><td>Benchmark <em>train</em> splits</td><td class="pass">Yes</td><td class="why">Allowed inside the always-on floor to teach answer format. The matching test split never enters a batch</td></tr>
+          <tr><td>Golden proxy — test and validation material</td><td class="fail">Never</td><td class="why">Immutable, stored where training jobs have no read access. Used only to steer the selector and score the model</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">A leaked item does not merely inflate one score; it permanently invalidates that item as a test. Translated leakage counts — an English benchmark item appearing in Hindi is still contamination.</p>
+    <div class="verdict"><b>Decision.</b> Release gates on every objective simultaneously, each pinned to a live competitor or a versioned harness, with per-language reporting and a firewall enforced at ingestion.</div>
+  </div>
+</section>
+
+<section class="block cloud" id="tok">
+  <div class="container">
+    <div class="kicker">A5 · Fertility targets → tokenizer size</div>
+    <h2 class="sec">Per language, against measured numbers.</h2>
+    <p class="claim"><strong>Claim.</strong> Fertility is tokens per unit of meaning; under a fixed budget a high-fertility language silently receives fewer documents. Targets are set <strong>per language against a published 200K Indic tokenizer</strong>, not as comfortable groupings. The generic tax it removes is <strong>1.3–7.8×</strong> depending on language — about 1.4× for Hindi and Urdu, 7.8× for Odia — so the dispersion, not a headline floor, is the problem being solved.</p>
+
+    <h3 class="sub">Targets — tokens per whitespace word, measured reference in the last column</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Language / domain</th><th class="num">Target</th><th class="num">Measured at 200K</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>English</td><td class="num">≤ 1.30</td><td class="num">1.34</td><td class="why">Claims of ≤1.05 are unattainable; no production tokenizer is close</td></tr>
+          <tr><td>Hindi</td><td class="num">≤ 1.25</td><td class="num">1.23</td><td class="why">Already met by the reference — hold it, do not celebrate it</td></tr>
+          <tr><td>Punjabi</td><td class="num">≤ 1.40</td><td class="num">1.39</td><td class="why">Met; Gurmukhi is compact</td></tr>
+          <tr><td>Urdu</td><td class="num">≤ 1.45</td><td class="num">1.44</td><td class="why">Met; Perso-Arabic keeps first-class merge budget</td></tr>
+          <tr><td>Marathi</td><td class="num">≤ 1.60</td><td class="num">1.63</td><td class="why">Shares Devanagari with Hindi but compounds more</td></tr>
+          <tr><td>Odia</td><td class="num">≤ 1.65</td><td class="num">1.65</td><td class="why">Met at the reference; the extreme generic-tax case (7.8×)</td></tr>
+          <tr><td>Bengali</td><td class="num">≤ 1.70</td><td class="num">1.74</td><td class="why">Small gap to close</td></tr>
+          <tr><td>Gujarati</td><td class="num">≤ 1.75</td><td class="num">1.77</td><td class="why">Small gap to close</td></tr>
+          <tr><td>Assamese</td><td class="num">≤ 1.80</td><td class="num">1.85</td><td class="why">Rides Bengali-Assamese merges</td></tr>
+          <tr><td>Telugu</td><td class="num">≤ 1.85</td><td class="num">1.88</td><td class="why">Best of the Dravidian four</td></tr>
+          <tr><td>Tamil</td><td class="num">≤ 2.05</td><td class="num">2.12</td><td class="why">Agglutinative with sandhi</td></tr>
+          <tr><td>Kannada</td><td class="num">≤ 2.10</td><td class="num">2.19</td><td class="why">Worse than Tamil at the reference</td></tr>
+          <tr class="winner"><td>Malayalam</td><td class="num">≤ 2.20</td><td class="num">2.30</td><td class="why"><strong>The binding constraint</strong> — a 4.3% improvement on the hardest measured language, not the 3% on Tamil a grouped row would imply</td></tr>
+          <tr><td>Romanized Hinglish</td><td class="num">≤ 1.35</td><td class="num">—</td><td class="why">Rides English merges; the register most users actually type</td></tr>
+          <tr><td>Code</td><td class="num">≥ 3.3 chars / token</td><td class="num">—</td><td class="why">Words are the wrong unit; indentation runs handled explicitly</td></tr>
+          <tr><td>Math / science</td><td class="num">≥ 3.0 chars / token</td><td class="num">—</td><td class="why">Digits split 0–9: arithmetic accuracy beats compression</td></tr>
+          <tr><td>Agentic / tool traces</td><td class="num">≤ 1.50</td><td class="num">—</td><td class="why">Reserved role, tool-call, result and fill-in-middle tokens keep JSON cheap</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note"><strong>Cost equity, stated honestly.</strong> Against English at 1.30, the ≤1.4× principle holds for <strong>8 of the 12</strong> scheduled languages (Hindi 0.96×, Punjabi 1.08×, Urdu 1.12×, Marathi 1.23×, Odia 1.27×, Bengali 1.31×, Gujarati 1.35×, Assamese 1.38×). The four Dravidian languages sit at 1.42× (Telugu), 1.58× (Tamil), 1.62× (Kannada) and 1.69× (Malayalam). That gap is a stated limitation, not a rounding error: closing it needs morphology-aware segmentation, not more vocabulary.</p>
+
+    <div class="viz" aria-label="Target fertility versus measured generic cost">
+      <svg viewBox="0 0 1000 260" role="img">
+        <text x="0" y="14" fill="#707072" font-size="11" font-family="Inter,sans-serif" letter-spacing="1">DARK = OUR TARGET · LIGHT = MEASURED GENERIC LLAMA-CLASS COST · SCALE 60 PX PER TOKEN/WORD</text>
+        <line x1="210" y1="24" x2="210" y2="212" stroke="#cacacb" stroke-width="1"/>
+        <text x="0" y="46" fill="#111111" font-size="13" font-family="Inter,sans-serif">English</text>
+        <rect x="210" y="32" width="80" height="16" fill="#e5e5e5"/><rect x="210" y="32" width="78" height="16" fill="#111111"/>
+        <text x="860" y="45" fill="#111111" font-size="13" font-family="Inter,sans-serif">1.30 / 1.34</text>
+        <text x="0" y="80" fill="#111111" font-size="13" font-family="Inter,sans-serif">Hindi</text>
+        <rect x="210" y="66" width="110" height="16" fill="#e5e5e5"/><rect x="210" y="66" width="75" height="16" fill="#111111"/>
+        <text x="860" y="79" fill="#111111" font-size="13" font-family="Inter,sans-serif">1.25 / 1.83</text>
+        <text x="0" y="114" fill="#111111" font-size="13" font-family="Inter,sans-serif">Bengali</text>
+        <rect x="210" y="100" width="176" height="16" fill="#e5e5e5"/><rect x="210" y="100" width="102" height="16" fill="#111111"/>
+        <text x="860" y="113" fill="#111111" font-size="13" font-family="Inter,sans-serif">1.70 / 2.93</text>
+        <text x="0" y="148" fill="#111111" font-size="13" font-family="Inter,sans-serif">Gujarati</text>
+        <rect x="210" y="134" width="202" height="16" fill="#e5e5e5"/><rect x="210" y="134" width="105" height="16" fill="#111111"/>
+        <text x="860" y="147" fill="#111111" font-size="13" font-family="Inter,sans-serif">1.75 / 3.37</text>
+        <text x="0" y="182" fill="#111111" font-size="13" font-family="Inter,sans-serif">Tamil</text>
+        <rect x="210" y="168" width="352" height="16" fill="#e5e5e5"/><rect x="210" y="168" width="123" height="16" fill="#111111"/>
+        <text x="860" y="181" fill="#111111" font-size="13" font-family="Inter,sans-serif">2.05 / 5.87</text>
+        <text x="0" y="216" fill="#111111" font-size="13" font-family="Inter,sans-serif">Odia</text>
+        <rect x="210" y="202" width="631" height="16" fill="#e5e5e5"/><rect x="210" y="202" width="99" height="16" fill="#111111"/>
+        <text x="860" y="215" fill="#111111" font-size="13" font-family="Inter,sans-serif">1.65 / 10.51</text>
+        <text x="0" y="248" fill="#707072" font-size="12" font-family="Inter,sans-serif">Every light bar is a published measurement for that language, drawn in that language’s own row. Odia is the extreme case at 7.8× English; Hindi is already near parity at 1.4×, which is why dispersion — not the average — drives the design.</text>
+      </svg>
+    </div>
+
+    <h3 class="sub">From targets to a number — the vocabulary rejection chain</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Option</th><th class="num">Vocab</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td>Sarvam-class</td><td class="num">68K</td><td class="fail">Indic fertility is fine, but no headroom for code, math and reserved tool tokens at 40B scale</td></tr>
+          <tr><td>Llama / Param-class</td><td class="num">128K</td><td class="fail">Once 10 Indic scripts, code and math compete, the Dravidian block starves</td></tr>
+          <tr class="winner"><td>Selected</td><td class="num">196,608</td><td class="pass">192 × 1024. The published 200K Indic tokenizer reaches SOTA here and beats a 262K frontier vocabulary on 20 of 24 languages, and its own conclusion is that fertility gains flatten past 200K</td></tr>
+          <tr><td>Gemma-class</td><td class="num">262K</td><td class="fail">The extra 65,536 slots cost only ~0.40B parameters (1.0% of 40B), so this is affordable — it is rejected because the measured fertility does not improve, not because of cost</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">How the 196,608 slots are allocated</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Block</th><th class="num">Slots</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>English, Latin, code, math, symbols, digits</td><td class="num">94K</td><td class="why">Keeps code at ≥3.3 chars per token without borrowing from Indic</td></tr>
+          <tr><td>10 Indic scripts covering 12 scheduled languages</td><td class="num">76K</td><td class="why">Dravidian-weighted, because Malayalam and Kannada are the binding constraint. Devanagari serves Hindi and Marathi; Bengali-Assamese serves Bengali and Assamese</td></tr>
+          <tr><td>Romanized / code-mixed</td><td class="num">12K</td><td class="why">Hinglish as a first-class register rather than a fallback</td></tr>
+          <tr><td>Other multilingual, byte fallback, reserved</td><td class="num">10K</td><td class="why">256 byte symbols so UNK is structurally impossible, plus ~3.2K reserved role / tool / fill-in-middle / growth tokens</td></tr>
+          <tr class="winner"><td>Total</td><td class="num">192K = 196,608</td><td class="why">94 + 76 + 12 + 10 = 192 binary-K exactly. No over-allocation</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">Construction: byte-level BPE, akshara-aware pre-tokenization per Brahmic script, ZWJ / ZWNJ preserved, digits split, superword merges evaluated as a second stage. The tokenizer’s own training mix ≈ 35% English and code, 45% Indic (fertility-driven upsample), 10% math, 10% other. Tied embeddings cost 196,608 × 6,144 = <strong>1.21B parameters, 3.02% of 40B</strong>. Candidates at 160K, 196,608, 224K and 256K are compared on equal-FLOP 1B proxies; 196,608 ships only if per-language fertility, bits-per-byte, throughput and HumanEval / MBPP all hold. Per-language fertility is tracked in CI on every release, using the harness built in Session 2.</p>
+    <div class="verdict"><b>Decision.</b> 196,608 byte-fallback BPE — 94K English/code/math, 76K Dravidian-weighted Indic across 10 scripts, 12K romanized, 10K other and reserved. Rejected 262K because measured fertility does not improve, not because it is unaffordable.</div>
+  </div>
+</section>
+
+<section class="block" id="risk">
+  <div class="container">
+    <div class="kicker">Trade-offs accepted</div>
+    <h2 class="sec">What this plan gives up.</h2>
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr><th>Trade-off</th><th>Cost we accept</th></tr></thead>
+        <tbody>
+          <tr><td>Native Indic is only 7% of Stage A</td><td class="why">The honest consequence of ~95B verified supply, a 4-epoch cap and a 50% synthetic ceiling. We compensate with India-context English, the always-on floor and romanized text — but we do not pretend a 3T native bucket exists</td></tr>
+          <tr><td>Distillation dependency</td><td class="why">14T at 350 tok/param assumes a stronger teacher is available. Without one, quality must come from more unique data, which is the thing in short supply</td></tr>
+          <tr><td>Dravidian equity gap of 1.42–1.69×</td><td class="why">Above the 1.4× principle that holds for the other eight languages. Closing it needs morphology-aware segmentation, deferred for latency and brittleness</td></tr>
+          <tr><td>196,608 rather than 262K</td><td class="why">Slightly worse fertility on the smallest scheduled languages, whose real constraint is data scarcity, not vocabulary</td></tr>
+          <tr><td>Sealed India-first evaluation</td><td class="why">Not externally reproducible, but a public India benchmark would be contaminated within one release cycle</td></tr>
+          <tr><td>Every number is a planning estimate</td><td class="why">Nothing here is a trained result. Mixtures, thresholds and vocabulary are frozen only after 1B and 3B equal-compute ablations rank them</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="verdict"><b>Bottom line.</b> 40B dense with distillation · 14T tokens at 350 per parameter, being 1.48× the parity target’s compute and 2.9 epochs on a 4.8T unique pool · 12.67T scored / 1.12T protected / 210B annealed · native Indic held at 0.76T by real supply, with 1.79T total Indic exposure and 2.33T of India-context English · code 17.6% of the run · SWE-bench Verified ≥ 65% and BFCL v3 ≥ 78% · per-language fertility anchored to measured results · a 196,608-token vocabulary allocated 94K / 76K / 12K / 10K.</div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>ERA V5 · Session 3 · Assignment 3 — design brief for a 40B India-first coding and agentic model: data, cleaning, evaluation, and a fertility-derived vocabulary.</p>
+    <p class="fine-print">Published at <a href="https://india-first-40b.surge.sh/">india-first-40b.surge.sh</a>. Planning estimates throughout; no model was trained.</p>
+  </div>
+</footer>
+
+</body>
+</html>
